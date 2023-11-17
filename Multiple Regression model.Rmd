@@ -1,0 +1,206 @@
+---
+title: "Multiple Regression Model"
+output: html_document
+
+---
+
+# A multiple regression model
+
+```{r}
+library(readr)
+Stress <- read_csv("Stress.csv", show_col_types = FALSE)
+head(Stress)
+```
+
+## Number and Levels of Measurement:
+```{r}
+str(Stress)
+```
+
+##  Missing Data:
+```{r}
+# Check for missing data
+missing_data <- colSums(is.na(Stress))
+
+# Print the missing values
+print(missing_data)
+
+```
+```{r}
+# Assuming 'stress' is your data frame
+standard_deviation_stress <- sapply(Stress, sd)
+
+# Create a data frame with Variable, Mean, Standard Deviation, and Median
+summary_table_stress <- data.frame(
+  Variable = names(standard_deviation_stress),
+  Mean = sapply(Stress, mean),
+  Std_Dev = standard_deviation_stress,
+  Median = sapply(Stress, median)
+)
+
+# Print the summary table for stress
+print(summary_table_stress)
+
+```
+
+
+
+```{r}
+# Check for outliers using boxplots or other methods
+# Example: Identifying and handling outliers using the IQR method
+outliers <- boxplot(Stress, plot = TRUE)$out
+```
+
+
+```{r}
+# Example for a histogram of the 'sr' variable
+hist(Stress$sr, main = "Histogram of Stress Rating", xlab = "Stress Rating")
+
+```
+`
+```{r}
+cor_matrix <- cor(Stress)
+print(cor_matrix)
+
+```
+```{r}
+# Assuming you have already fit a multiple regression model (as per previous discussions)
+model <- lm(sr ~ rr + t + lm + bo + rem + sh + hr , data = Stress)
+
+
+```
+
+```{r}
+summary(model)
+```
+
+```{r}
+# Assuming 'model' is your multiple regression model
+# Check linearity: Residuals vs. Fitted values
+plot(model$fitted.values, resid(model), xlab = "Fitted values", ylab = "Residuals")
+abline(h = 0, col = "red", lty = 2)  # Add a horizontal line at y = 0
+
+
+# Check homoscedasticity: Residuals vs. Fitted values (spread of residuals)
+plot(model$fitted.values, sqrt(abs(resid(model))), xlab = "Fitted values", ylab = "sqrt(|Residuals|)")
+abline(h = 0, col = "red", lty = 2)  # Add a horizontal line at y = 0
+
+# Check normality of residuals: Q-Q plot and Shapiro-Wilk test
+qqnorm(resid(model))
+qqline(resid(model), col = 2)
+
+# Shapiro-Wilk test for normality
+shapiro.test(resid(model))
+
+```
+
+
+```{r}
+# Assuming 'Stress' is your dataframe
+Stress$log_sr <- log(Stress$sr)
+
+# Fit a model with the transformed variable
+transformed_model <- lm(log_sr ~ rr + t + lm + bo + rem + sh , data = Stress)
+
+# Check the normality of residuals for the transformed model
+shapiro.test(resid(transformed_model))
+
+```
+
+
+```{r}
+summary(transformed_model)
+```
+
+```{r}
+# Create an interaction term between 'rem' and 'sh'
+Stress$rem_sh_interaction <- Stress$rem * Stress$sh
+
+# Fit a model with the interaction term
+interaction_model <- lm(log_sr ~ rr + t + lm + bo + rem + sh + rem_sh_interaction, data = Stress)
+
+# Check the summary of the model
+summary(interaction_model)
+
+```
+
+
+# A logistic regression model
+
+```{r}
+library(readr)
+diabetes <- read_csv("diabetes.csv", show_col_types = FALSE)
+head(diabetes)
+```
+
+```{r}
+str(diabetes)
+```
+
+
+```{r}
+# Check for missing data
+missing_data <- colSums(is.na(diabetes))
+
+# Print the missing values
+print(missing_data)
+```
+
+```{r}
+summary(diabetes)
+```
+
+```{r}
+# Assuming 'diabetes' is your data frame
+standard_deviation <- sapply(diabetes, sd)
+
+# Create a data frame with Variable, Mean, Standard Deviation, and Median
+summary_table <- data.frame(
+  Variable = names(standard_deviation),
+  Mean = sapply(diabetes, mean),
+  Std_Dev = standard_deviation,
+  Median = sapply(diabetes, median)
+)
+
+# Print the summary table
+print(summary_table)
+```
+
+
+```{r}
+# Example for a histogram of the 'sr' variable
+hist(diabetes$Outcome, main = "Histogram of Outcome", xlab = "Outcome")
+
+
+```
+```{r}
+diabetes$Outcome <- as.factor(diabetes$Outcome)
+```
+
+```{r}
+# Install and load the caret package
+#install.packages("caret")
+library(caret)
+
+
+
+set.seed(123)
+split_index <- createDataPartition(diabetes$Outcome, p = 0.7, list = FALSE)
+train_data <- diabetes[split_index, ]
+test_data <- diabetes[-split_index, ]
+
+# Train a logistic regression model to predict diabetes presence
+diabetes_model <- glm(Outcome ~ ., data = train_data, family = "binomial")
+
+# Make predictions on the test set
+predicted_probabilities <- predict(diabetes_model, newdata = test_data, type = "response")
+
+# Convert probabilities to binary predictions (0 or 1)
+predicted_outcome <- ifelse(predicted_probabilities > 0.5, 1, 0)
+
+# Evaluate the model's performance
+confusion_matrix <- confusionMatrix(as.factor(predicted_outcome), test_data$Outcome)
+print(confusion_matrix)
+
+```
+
